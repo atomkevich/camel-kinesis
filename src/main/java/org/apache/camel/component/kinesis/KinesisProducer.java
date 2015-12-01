@@ -7,10 +7,12 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import org.apache.camel.Exchange;
 import org.apache.camel.impl.DefaultProducer;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 import static java.lang.String.format;
 import static org.apache.camel.component.kinesis.KinesisConstants.MAX_PRODUCER_CONNECTIONS;
@@ -44,11 +46,14 @@ public class KinesisProducer<K, V> extends DefaultProducer {
 
     @Override
     public void process(Exchange exchange) throws Exception {
+        String partitionKey = (String) exchange.getIn().getHeader(KinesisConstants.PARTITION_KEY);
+        partitionKey = (StringUtils.isEmpty(partitionKey)) ? kinesisEndpoint.getPartitionKey() : partitionKey;
+        partitionKey = (StringUtils.isEmpty(partitionKey)) ? UUID.randomUUID().toString() : partitionKey;
 
         getCallbackOfSendingMessage(
                 kinesisProducer.addUserRecord(
                         kinesisEndpoint.getStreamName(),
-                        kinesisEndpoint.getPartitionKey(),
+                        partitionKey,
                         exchange.getIn().getBody(ByteBuffer.class))
         );
     }
